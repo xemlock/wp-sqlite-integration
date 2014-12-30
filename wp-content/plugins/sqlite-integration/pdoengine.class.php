@@ -256,6 +256,11 @@ class PDOEngine extends PDO {
 			}
 			$this->make_sqlite_tables();
 		}
+
+		// check if system temporary dir is writable, if not, sqlite will
+		// throw SQLSTATE[HY000] [14] unable to open database file error
+		// whenever a temporary file needs to be used (index creation,
+		// group by in query, etc.). See: http://stackoverflow.com/a/16190681
 		if (!tmpfile()) {
 			$this->pdo->exec('PRAGMA temp_store = MEMORY');
 		}
