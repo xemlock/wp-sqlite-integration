@@ -262,7 +262,9 @@ class PDODB extends wpdb {
 			}
 		}
 
-		if (preg_match('/^\\s*(create|alter|truncate|drop|optimize)\\s*/i', $query)) {
+		if (preg_match('/^\\s*desc(ribe)?\\s*(\\S+)/i', $query, $match)) {
+			$query = 'PRAGMA table_info(' . trim($match[2], ';') . ')';
+		} elseif (preg_match('/^\\s*(create|alter|truncate|drop|optimize)\\s*/i', $query)) {
 			//$return_val = $this->result;
 			$return_val = $this->dbh->get_return_value();
 		} elseif (preg_match('/^\\s*(insert|delete|update|replace)\s/i', $query)) {

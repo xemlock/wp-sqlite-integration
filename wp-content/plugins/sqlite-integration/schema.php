@@ -28,6 +28,7 @@ function make_db_sqlite() {
 	$query_parser  = new CreateQuery();
 	try {
 		$pdo = new PDO('sqlite:'.FQDB, null, null, array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION));
+		if (!tmpfile()) $pdo->exec('PRAGMA temp_store = MEMORY');
 	} catch (PDOException $err) {
 		$err_data = $err->errorInfo;
 		$message  = 'Database connection error!<br />';

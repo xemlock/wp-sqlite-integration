@@ -256,6 +256,9 @@ class PDOEngine extends PDO {
 			}
 			$this->make_sqlite_tables();
 		}
+		if (!tmpfile()) {
+			$this->pdo->exec('PRAGMA temp_store = MEMORY');
+		}
 	}
 
 	/**
