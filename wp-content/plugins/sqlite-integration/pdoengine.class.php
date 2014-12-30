@@ -205,7 +205,6 @@ class PDOEngine extends PDO {
 	 * @return boolean
 	 */
 	private function init() {
-		$dsn    = 'sqlite:' . FQDB;
 		$result = $this->prepare_directory();
 		if (!$result) return false;
 		if (is_file(FQDB)) {
@@ -213,13 +212,7 @@ class PDOEngine extends PDO {
 			do {
 				try {
 					if ($locked) $locked = false;
-					$this->pdo = new PDO(
-						$dsn,  // data source name
-						null,  // user name
-						null,  // user password
-						array( // PDO options
-							PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-							));
+					$this->pdo = self::create_pdo();
 					$statement        = $this->pdo->query("SELECT COUNT(*) FROM sqlite_master WHERE type='table'");
 					$number_of_tables = $statement->fetchColumn(0);
 					$statement        = null;
@@ -247,7 +240,7 @@ class PDOEngine extends PDO {
 			}
 		} else { // database file is not found, so we make it and create tables...
 			try {
-				$this->pdo = new PDO($dsn, null, null, array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION));
+				$this->pdo = self::create_pdo();
 			} catch (PDOException $err) {
 				$message  = 'Database initialization error!<br />';
 				$message .= sprintf("Error message is: %s", $err->getMessage());
@@ -256,14 +249,48 @@ class PDOEngine extends PDO {
 			}
 			$this->make_sqlite_tables();
 		}
+	}
+
+
+	/**
+	 * Creates a PDO instance connected to a SQLite database.
+	 *
+	 * @param string $path OPTIONAL
+	 * @return PDO
+	 */
+	public static function create_pdo($path = null) {
+		static $memory_temp_store;
+
+		if (is_null($path)) {
+			$path = FQDB;
+		}
+
+		$pdo = new PDO(
+			'sqlite:' . $path,  // data source name
+			null,  // user name
+			null,  // user password
+			array( // PDO options
+				PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+			)
+		);
 
 		// check if system temporary dir is writable, if not, sqlite will
 		// throw SQLSTATE[HY000] [14] unable to open database file error
 		// whenever a temporary file needs to be used (index creation,
 		// group by in query, etc.). See: http://stackoverflow.com/a/16190681
-		if (!tmpfile()) {
-			$this->pdo->exec('PRAGMA temp_store = MEMORY');
+		if (is_null($memory_temp_store)) {
+			if (($fh = tmpfile()) && fclose($fh)) {
+				$memory_temp_store = false;
+			} else {
+				$memory_temp_store = true;
+			}
 		}
+
+		if ($memory_temp_store) {
+			$pdo->exec('PRAGMA temp_store = MEMORY');
+		}
+
+		return $pdo;
 	}
 
 	/**
